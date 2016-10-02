@@ -2,20 +2,5 @@
   "db": {
     "name": "db",
     "connector": "memory"
-  },
-  "arrayscanDS": {
-      "connector": "mssql",
-      "host": "10.230.9.202",
-      "port": 1433,
-      "database": "store",
-      "username": "mysqluser",
-      "password": "password"
-  },
-  "chemgenDS": {
-      "connector": "mysql",
-      "host": "localhost",
-      "database": "chemgen",
-      "username": "chemgen",
-      "password": "chemGen123"
   }
 }
