@@ -1,0 +1,76 @@
+{
+  "name": "RmMsrmntMethodAssignments",
+  "options": {
+    "idInjection": false,
+    "mssql": {
+      "schema": "dbo",
+      "table": "RM_MSRMNT_METHOD_ASSIGNMENTS"
+    }
+  },
+  "properties": {
+    "mmaAssayId": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 5,
+      "scale": 0,
+      "id": 1,
+      "mssql": {
+        "columnName": "MMA_ASSAY_ID",
+        "dataType": "smallint",
+        "dataLength": null,
+        "dataPrecision": 5,
+        "dataScale": 0,
+        "nullable": "NO"
+      }
+    },
+    "mmaAssayVersion": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 5,
+      "scale": 0,
+      "id": 2,
+      "mssql": {
+        "columnName": "MMA_ASSAY_VERSION",
+        "dataType": "smallint",
+        "dataLength": null,
+        "dataPrecision": 5,
+        "dataScale": 0,
+        "nullable": "NO"
+      }
+    },
+    "mmaMmethodId": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 5,
+      "scale": 0,
+      "id": 3,
+      "mssql": {
+        "columnName": "MMA_MMETHOD_ID",
+        "dataType": "smallint",
+        "dataLength": null,
+        "dataPrecision": 5,
+        "dataScale": 0,
+        "nullable": "NO"
+      }
+    },
+    "mmaMmethodVersion": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 5,
+      "scale": 0,
+      "id": 4,
+      "mssql": {
+        "columnName": "MMA_MMETHOD_VERSION",
+        "dataType": "smallint",
+        "dataLength": null,
+        "dataPrecision": 5,
+        "dataScale": 0,
+        "nullable": "NO"
+      }
+    }
+  }
+}
