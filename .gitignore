@@ -1,6 +1,7 @@
-/chemgen-client/bower_components
+/chemgen-loopback/node_modules
 /chemgen-client/node_modules
+/chemgen-client/dist
 /chemgen-client/.tmp
 /chemgen-client/.sass-cache
-/chemgen-loopback/node_modules
+/chemgen-client/bower_components
 /chemgen-vars
