@@ -1,3 +1,5 @@
 chemgen-client/bower_components
 chemgen-client/node_modules
+chemgen-client/.tmp
+chemgen-client/.sass-cache
 chemgen-loopback/node_modules
