@@ -8,6 +8,11 @@
  *
  * Main module of the application.
  */
+//'ui.grid.autoResize',
+//'ui.grid.pagination',
+//'ui.grid.edit',
+//'ui.grid.rowEdit',
+//
 angular
     .module('chemgenClientApp', [
         'ngAnimate',
@@ -19,6 +24,7 @@ angular
         'lbServices',
         'ui.grid',
         'ui.bootstrap',
+        'ui.grid.selection',
         'ui.grid.infiniteScroll',
         'formly',
         'formlyBootstrap',
@@ -34,6 +40,12 @@ angular
         formlyConfigProvider.setType({
             name: 'typeahead',
             templateUrl: 'views/plate_typeahead.html',
+            wrapper: ['bootstrapLabel', 'bootstrapHasError']
+        });
+
+        formlyConfigProvider.setType({
+            name: 'ui-grid',
+            template: '<div ui-grid="{ data: model[options.key], columnDefs: to.columnDefs, onRegisterApi: to.onRegisterApi}" ui-grid-selection  ></div>',
             wrapper: ['bootstrapLabel', 'bootstrapHasError']
         });
 
@@ -69,6 +81,11 @@ angular
                 templateUrl: 'views/formly.html',
                 controller: 'FormlyCtrl',
                 controllerAs: 'formly'
+            })
+            .when('/uigrid', {
+              templateUrl: 'views/uigrid.html',
+              controller: 'UigridCtrl',
+              controllerAs: 'uigrid'
             })
             .otherwise({
                 redirectTo: '/'
