@@ -1,0 +1,103 @@
+{
+  "name": "WpOauthAccessTokens",
+  "options": {
+    "idInjection": false,
+    "mysql": {
+      "schema": "wordpress",
+      "table": "wp_oauth_access_tokens"
+    }
+  },
+  "properties": {
+    "id": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 10,
+      "scale": 0,
+      "id": 1,
+      "mysql": {
+        "columnName": "id",
+        "dataType": "int",
+        "dataLength": null,
+        "dataPrecision": 10,
+        "dataScale": 0,
+        "nullable": "N"
+      }
+    },
+    "accessToken": {
+      "type": "String",
+      "required": true,
+      "length": 4000,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "access_token",
+        "dataType": "varchar",
+        "dataLength": 4000,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "clientId": {
+      "type": "String",
+      "required": true,
+      "length": 80,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "client_id",
+        "dataType": "varchar",
+        "dataLength": 80,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "userId": {
+      "type": "String",
+      "required": false,
+      "length": 80,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "user_id",
+        "dataType": "varchar",
+        "dataLength": 80,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "Y"
+      }
+    },
+    "expires": {
+      "type": "Date",
+      "required": true,
+      "length": null,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "expires",
+        "dataType": "timestamp",
+        "dataLength": null,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "scope": {
+      "type": "String",
+      "required": false,
+      "length": 4000,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "scope",
+        "dataType": "varchar",
+        "dataLength": 4000,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "Y"
+      }
+    }
+  }
+}

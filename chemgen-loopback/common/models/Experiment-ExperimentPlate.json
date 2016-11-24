@@ -10,13 +10,58 @@
   "properties": {
     "experimentPlateId": {
       "type": "Number",
-      "required": true,
+      "required": false,
       "length": null,
       "precision": 10,
       "scale": 0,
       "id": 1,
       "mysql": {
         "columnName": "experiment_plate_id",
+        "dataType": "int",
+        "dataLength": null,
+        "dataPrecision": 10,
+        "dataScale": 0,
+        "nullable": "N"
+      }
+    },
+    "barcode": {
+      "type": "String",
+      "required": true,
+      "length": 100,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "barcode",
+        "dataType": "varchar",
+        "dataLength": 100,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "instrumentId": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 10,
+      "scale": 0,
+      "mysql": {
+        "columnName": "instrument_id",
+        "dataType": "int",
+        "dataLength": null,
+        "dataPrecision": 10,
+        "dataScale": 0,
+        "nullable": "N"
+      }
+    },
+    "instrumentPlateId": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 10,
+      "scale": 0,
+      "mysql": {
+        "columnName": "instrument_plate_id",
         "dataType": "int",
         "dataLength": null,
         "dataPrecision": 10,
@@ -56,13 +101,13 @@
     },
     "date": {
       "type": "Date",
-      "required": true,
+      "required": false,
       "length": null,
       "precision": null,
       "scale": null,
       "mysql": {
         "columnName": "date",
-        "dataType": "datetime",
+        "dataType": "timestamp",
         "dataLength": null,
         "dataPrecision": null,
         "dataScale": null,
@@ -86,7 +131,7 @@
     },
     "comment": {
       "type": "String",
-      "required": true,
+      "required": false,
       "length": 65535,
       "precision": null,
       "scale": null,
@@ -96,7 +141,7 @@
         "dataLength": 65535,
         "dataPrecision": null,
         "dataScale": null,
-        "nullable": "N"
+        "nullable": "Y"
       }
     }
   }

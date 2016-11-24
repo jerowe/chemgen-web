@@ -1,0 +1,73 @@
+{
+  "name": "WpOptions",
+  "options": {
+    "idInjection": false,
+    "mysql": {
+      "schema": "wordpress",
+      "table": "wp_options"
+    }
+  },
+  "properties": {
+    "optionId": {
+      "type": "Number",
+      "required": true,
+      "length": null,
+      "precision": 20,
+      "scale": 0,
+      "id": 1,
+      "mysql": {
+        "columnName": "option_id",
+        "dataType": "bigint",
+        "dataLength": null,
+        "dataPrecision": 20,
+        "dataScale": 0,
+        "nullable": "N"
+      }
+    },
+    "optionName": {
+      "type": "String",
+      "required": true,
+      "length": 191,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "option_name",
+        "dataType": "varchar",
+        "dataLength": 191,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "optionValue": {
+      "type": "String",
+      "required": true,
+      "length": 4294967295,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "option_value",
+        "dataType": "longtext",
+        "dataLength": 4294967295,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    },
+    "autoload": {
+      "type": "String",
+      "required": true,
+      "length": 20,
+      "precision": null,
+      "scale": null,
+      "mysql": {
+        "columnName": "autoload",
+        "dataType": "varchar",
+        "dataLength": 20,
+        "dataPrecision": null,
+        "dataScale": null,
+        "nullable": "N"
+      }
+    }
+  }
+}

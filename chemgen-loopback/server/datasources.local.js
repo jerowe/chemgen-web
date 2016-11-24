@@ -17,5 +17,12 @@ module.exports = {
       "database": process.env.CHEMGEN_DB,
       "username": process.env.CHEMGEN_USER,
       "password": process.env.CHEMGEN_PASS
+  },
+  "wordpressDS": {
+      "connector": "mysql",
+      "host": process.env.WORDPRESS_HOST,
+      "database": process.env.WORDPRESS_DB,
+      "username": process.env.WORDPRESS_USER,
+      "password": process.env.WORDPRESS_PASS
   }
 };

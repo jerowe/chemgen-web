@@ -29,10 +29,43 @@
     "dataSource": "db",
     "public": false
   },
-  "ChemicalsChemicallibrary": {
+  "ChemicalChembridgelibrary": {
+      "dataSource": "chemgenDS"
+  },
+  "ChemicalLibrarystock": {
+      "dataSource": "chemgenDS"
+  },
+  "ReagentsReagentlibrary": {
+      "dataSource": "chemgenDS"
+  },
+  "ExperimentExperimentplate": {
+      "dataSource": "chemgenDS"
+  },
+  "ExperimentAssay": {
+      "dataSource": "chemgenDS"
+  },
+  "MainScreen": {
+      "dataSource": "chemgenDS"
+  },
+  "MainInstrument": {
       "dataSource": "chemgenDS"
   },
   "Plate": {
       "dataSource": "arrayscanDS"
+  },
+  "WpTermTaxonomy" :{
+      "dataSource": "wordpressDS"
+  },
+  "WpTermRelationships" :{
+      "dataSource": "wordpressDS"
+  },
+  "WpTerms" :{
+      "dataSource": "wordpressDS"
+  },
+  "WpPosts" :{
+      "dataSource": "wordpressDS"
+  },
+  "WpPostmeta" :{
+      "dataSource": "wordpressDS"
   }
 }

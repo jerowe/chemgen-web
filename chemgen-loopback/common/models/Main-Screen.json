@@ -10,7 +10,7 @@
   "properties": {
     "screenId": {
       "type": "Number",
-      "required": true,
+      "required": false,
       "length": null,
       "precision": 10,
       "scale": 0,
@@ -41,7 +41,7 @@
     },
     "type": {
       "type": "Number",
-      "required": true,
+      "required": false,
       "length": null,
       "precision": 19,
       "scale": 0,
@@ -51,7 +51,7 @@
         "dataLength": null,
         "dataPrecision": 19,
         "dataScale": 0,
-        "nullable": "N"
+        "nullable": "Y"
       }
     },
     "description": {
@@ -71,7 +71,7 @@
     },
     "screenProtocol": {
       "type": "Number",
-      "required": true,
+      "required": false,
       "length": null,
       "precision": 10,
       "scale": 0,
@@ -81,7 +81,7 @@
         "dataLength": null,
         "dataPrecision": 10,
         "dataScale": 0,
-        "nullable": "N"
+        "nullable": "Y"
       }
     }
   }

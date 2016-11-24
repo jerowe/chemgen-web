@@ -4,22 +4,23 @@ var fs = require('fs');
 var loopback = require('loopback');
 
 var app = require(path.resolve(__dirname, '../server/server'));
-//var datasource = app.datasources.chemgenDS;
-var datasource = app.datasources.arrayscanDS;
+var datasource = app.datasources.chemgenDS;
+//var datasource = app.datasources.wordpressDS;
+//var datasource = app.datasources.arrayscanDS;
 var outputPath = path.resolve(__dirname, '_models');
 
-var modelConfig = {};
+//var modelConfig = {};
+            //modelConfig[table] = {
+                //'datasource': 'chemgenDS'
+            //};
 
 datasource.discoverModelDefinitions(function(err, models) {
+
     models.forEach(function(def) {
         // def.name ~ the model name
         datasource.discoverSchema(def.name, null, function(err, results) {
             //console.log(schema);
             table = def.name;
-
-            modelConfig[table] = {
-                'datasource': 'chemgenDS'
-            };
 
             table = table.replace(/_/g, "-");
 
@@ -38,7 +39,8 @@ datasource.discoverModelDefinitions(function(err, models) {
         });
 
     });
-    var json = JSON.stringify(modelConfig, null, '  ');
-    console.log(json);
-    datasource.disconnect();
+
+    //var json = JSON.stringify(modelConfig, null, '  ');
+    //console.log(json);
+    //datasource.disconnect();
 });
