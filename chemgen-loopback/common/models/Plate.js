@@ -1,34 +1,121 @@
-module.exports = function(Plate){
+/* @flow */
+'use strict';
 
-    var Promise = require('bluebird');
+module.exports = function(Plate /*: any */ ) {
+  var Promise = require('bluebird');
+  var app = require('../../server/server.js');
 
-    Plate.getList = function(plate){
-
-        return new Promise(function(resolve, reject) {
-
-            Plate.find({
-                    where: {
-                        csPlateid: {
-                            between: [plate.plateStart, plate.plateEnd]
-                        }
-                    }
-                })
-                .then(function(results) {
-                    var plateIds = results.map(function(obj) {
-                        var newObj = {
-                            plateStartTime: obj.platestarttime,
-                            csPlateid: obj.csPlateid,
-                            barcode: obj.name,
-                            imagePath: obj.imagepath
-                        };
-                        return newObj;
-                    });
-                    resolve(plateIds);
-                })
-                .catch(function(error) {
-                    reject(error);
-                });
+  Plate.getList = function(plate) {
+    return new Promise(function(resolve, reject) {
+      Plate.find({
+        where: {
+          csPlateid: {
+            between: [plate.plateStart, plate.plateEnd],
+          },
+        },
+      })
+        .then(function(results) {
+          var plateIds = results.map(function(obj) {
+            var plateObj = {};
+            plateObj.plateStartTime = obj.platestarttime;
+            plateObj.csPlateid = obj.csPlateid;
+            plateObj.barcode = obj.name;
+            plateObj.imagePath = obj.imagepath;
+            return plateObj;
+          });
+          resolve(plateIds);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
         });
-    };
+    });
+  };
 
+  /**
+   * Take the array of PlateResultSets, add an interval, and the original FormData
+   * @param  {Array<Object>} plateListResults PlateResultSets
+   * @return {Array<Object>}                  PlateResultSets + additional metadata
+   */
+  Plate.populateExperimentPlate = function(FormData, plateListResults) {
+    return new Promise(function(resolve, reject) {
+      Promise.map(plateListResults, function(plateInfo, index) {
+        var interval = 60000 * (index + 1);
+        var input = {
+          FormData: FormData,
+          plateInfo: plateInfo,
+          interval: interval,
+        };
+        return input;
+      })
+        .then(function(inputs) {
+          resolve(inputs);
+        })
+        .catch(function(error) {
+          reject(error);
+        });
+    });
+  };
+
+  /**
+   * Submit our plateObjects to the queue
+   * @param  {Array<Object>} inputs Array of objects containing metadata for our ExperimentExperimentplate.kue
+   * @return {Array<Object>}       Resolves the createObj from the kue
+   */
+  Plate.submitKue = function(inputs) {
+    return new Promise(function(resolve, reject) {
+      Promise.map(inputs, function(input) {
+        return app.models.ExperimentExperimentplate.kue(input);
+      })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(error);
+        });
+    });
+  };
+
+  /**
+   * For a range plateX-plateY, get the plate data
+   * Preprocess each plate element - add in information the kue expects
+   * @param  {Array<Object>} plates [{plateStart: 1, plateEnd: 4}]
+   * @return {Array<Object>}        plateData in the format submitKue expects
+   */
+  Plate.preProcessPlateList = function(FormData) {
+    var plates = FormData.plates;
+    return new Promise(function(resolve, reject) {
+      Promise.map(plates, function(plate) {
+        return Plate.getList(plate);
+      })
+        .then(function(plateListResults) {
+          return Plate.populateExperimentPlate(FormData, plateListResults[0]);
+        })
+        .then(function(experimentPlateData) {
+          resolve(experimentPlateData);
+        })
+        .catch(function(error) {
+          reject(error);
+        });
+    });
+  };
+
+  /**
+   * Start the initial workflow for processing plates
+   * @param  {Object} FormData [See test/helpers.js for the FormData object]
+   * @return {Promise<submitKueResults>}          [Returns an array of promises of results from the submitKue function]
+   */
+  Plate.processFormData = function(FormData) {
+    return new Promise(function(resolve, reject) {
+      Plate.preProcessPlateList(FormData.plates)
+        .then(function(results) {
+          return Plate.submitKue(results);
+        })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
+    });
+  };
 };

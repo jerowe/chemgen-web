@@ -50,6 +50,9 @@
   "MainInstrument": {
       "dataSource": "chemgenDS"
   },
+  "MainOrganism": {
+      "dataSource": "chemgenDS"
+  },
   "Plate": {
       "dataSource": "arrayscanDS"
   },

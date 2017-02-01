@@ -1,198 +1,179 @@
+'use strict';
+
+/**
+ * There are two separate workflows here
+ * ImageQueue
+ * The arrayscan keeps images in a proprietary formdata
+ * We parse the imagePath from the arrayscanDB
+ * And generate the appropriate commands to convert the image
+ * When devstar is finished/trained we will add those commands as well
+ * AssayKue
+ * TBA
+ * @param  {[type]} ExperimentAssay [description]
+ * @return {[type]}                 [description]
+ */
 module.exports = function(ExperimentAssay) {
+  var app = require('../../server/server.js');
+  var queue = app.queue;
+  var Promise = require('bluebird');
+  var fs = require('fs');
+  var request = require('request');
+  var imageKue = require('./Experiment-Assay/ImageKue.js');
 
-    var kue = require('kue');
-    var queue = kue.createQueue();
-    var app = require('../../server/server.js');
-    var Promise = require('bluebird');
-    var fs = require('fs');
-    var request = require('request');
+  ExperimentAssay.getImagePath = function(plateInfo, well) {
+    var imageArray = plateInfo.imagePath.split('\\');
+    var folder = imageArray[4];
+    var imageId = imageArray[5];
+    var plateId = plateInfo.instrumentPlateId;
+    var assayName = plateInfo.barcode + '_' + well;
 
-    function getImagePath(plateInfo, well) {
+    var autoLevelJpegImage = ['/',
+      folder, '/',
+      plateId, '/',
+      assayName,
+      '-autolevel.jpeg'].join('');
 
-        var imageArray = plateInfo.imagePath.split('\\');
-        var folder = imageArray[4];
-        var imageId = imageArray[5];
-        var plateId = plateInfo.instrumentPlateId;
-        var assayName = plateInfo.barcode + "_" + well;
+    return [autoLevelJpegImage, folder, imageId, plateId];
+  };
 
-        var autoLevelJpegImage = '/' + folder + '/'  + plateId + '/'  + assayName + '-autolevel.jpeg';
-
-        return [autoLevelJpegImage, folder, imageId, plateId];
-    }
-
-    function convertImages(plateInfo, well) {
-
-        return new Promise(function(resolve) {
-
-            var imageArray = plateInfo.imagePath.split('\\');
-            var folder = imageArray[4];
-            var imageId = imageArray[5];
-            var plateId = plateInfo.instrumentPlateId;
-            var assayName = plateInfo.barcode + "_" + well;
-
-            var imagePath = '/mnt/Plate_Data/' + folder + '/' + imageId + '/' + imageId;
-            var ext = "f00d0.C01";
-
-            var vendorImage = imagePath + '_' + well + ext;
-
-            var outDir = '/mnt/image/';
-            var makeDir = outDir + folder + '/' + plateId;
-
-            var baseImage = makeDir + '/' + assayName;
-
-            var convertImage = baseImage + '.tiff';
-            var convertBmp = baseImage + '.bmp';
-            var autoLevelTiffImage = baseImage + '-autolevel.tiff';
-            var autoLevelJpegImage = baseImage + '-autolevel.jpeg';
-
-            //convert -thumbnail 1024x1024 MFGTMP-PC_141209150001_H11.jpeg MFGTMP-PC_141209150001_H11-autolevel-1024x1024.jpeg
-            var thumbSizes = ['1024x1024', '1080x1080', '1080x675', '150x150', '300x300', '400x250', '400x284', '510x384', '768x768'];
-
-            var commands = [];
-
-            fs.access(autoLevelJpegImage, function(err) {
-
-                if (err && err.code === 'ENOENT') {
-                    //console.log('we are creating some images!');
-                    commands.push('#!/usr/bin/env bash');
-                    commands.push('');
-
-                    commands.push('mkdir -p ' + makeDir);
-
-                    var random = Math.random().toString(36).substring(7);
-                    var tmpImage = '/tmp/' + random + '/' + random + '.C01';
-
-                    commands.push('mkdir -p /tmp/' + random);
-                    commands.push('cp -f ' + vendorImage + ' ' + tmpImage);
-                    commands.push('/var/data/bftools/bfconvert -overwrite ' + tmpImage + ' ' + convertImage);
-                    commands.push('convert -layers flatten -quality 100 ' + convertImage + ' ' + convertBmp);
-                    commands.push('convert -auto-level ' + convertImage + ' ' + autoLevelTiffImage);
-                    commands.push('convert -layers flatten -quality 100 ' + autoLevelTiffImage + ' ' + autoLevelJpegImage);
-
-                    thumbSizes.map(function(thumbSize) {
-                        commands.push('convert -thumbnail ' + thumbSize + ' ' + autoLevelJpegImage + ' ' + baseImage + '-autolevel-' + thumbSize + '.jpeg');
-                    });
-                    commands.push('rm -rf ' + '/tmp/' + random);
-                    //commands.push('rm -rf ' + autoLevelTiffImage);
-
-                    var imageJob = {
-                        title: 'convertImage-' + plateId + '-' + assayName,
-                        commands: commands,
-                    };
-
-                    request.post(
-                        'http://10.230.9.204:3001/', {
-                            json: imageJob
-                        },
-                        function() {
-
-                            resolve();
-                            ////if (!error && response.statusCode === 200) {
-                            //////everything is gooe
-                            ////} else {
-                            //////console.log('there was an error submitting jobs');
-                            ////}
-                        }
-                    );
-
-                } else {
-                    //console.log('we are not creating some images...');
-                    resolve();
-                }
-
-            });
-
+  /**
+   * Actually create the assay
+   * Takes input object from ExperimentAssay.prepareExperimentAssay
+   * @param  {Object} ExperimentAssayObj [ExperimentAssayModel]
+   * @return {[type]}                    [description]
+   */
+  ExperimentAssay.createAssay = function(ExperimentAssayObj) {
+    return new Promise(function(resolve, reject) {
+      ExperimentAssay
+        .create(ExperimentAssayObj)
+        .then(function(result) {
+          resolve(result);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
         });
-    }
+    });
+  };
 
-    ExperimentAssay.processImageKue = function(data, done) {
+  /**
+   * Create the ExperimentAssayObject
+   * Hand results of the creation (Object + ID) to the next kue
+   * Each libraryStock corresponds to a single well/assay
+   * @param  {Object}   data [FormData, plateInfo, libraryStockResult]
+   * @return {Object}        [Resolves ExperimentAssayResultSet]
+   */
+  ExperimentAssay.prepareExperimentAssay = function(data) {
+    var FormData = data.FormData;
+    var plateInfo = data.plateInfo;
+    var LibrarystockResult = data.createLibrarystockResult;
 
-        convertImages(data.plateInfo, data.createLibrarystockResult.well)
-            .then(function() {
-                done();
-            })
-            .catch(function(error) {
-                console.log('there was an error! ' + error);
-                return done(new Error(error));
-            });
+    var well = LibrarystockResult.well;
+    var image = ExperimentAssay.getImagePath(plateInfo, well);
+
+    var ExperimentAssayObj = {
+      plateId: plateInfo.experimentPlateId,
+      assayName: plateInfo.barcode + '_' + well,
+      well: well,
+      biosampleId: 1,
+      reagentId: LibrarystockResult.librarystockId,
+      isJunk: FormData.junk,
+      platePath: 'assays' + image[0],
+      metaAssay: JSON.stringify({
+        reagentType: 'chemical',
+        experimentType: 'organism',
+        library: 'chembridge',
+      }),
+      assayType: 'chemical',
     };
 
-    ExperimentAssay.processKue = function(data, done) {
+    return new Promise(function(resolve, reject) {
+      resolve(ExperimentAssayObj);
+    });
+  };
 
-        var FormData = data.FormData;
-        var plateInfo = data.plateInfo;
-        var createLibrarystockResult = data.createLibrarystockResult;
+  ExperimentAssay.processKue = function(data, done) {
+    ExperimentAssay
+      .prepareExperimentAssay(data)
+      .then(function(result) {
+        return ExperimentAssay.createAssay(result);
+      })
+      .then(function(result) {
+        return app.models.WpPosts
+          .assayPostKue(data, result);
+      })
+      .then(function(result) {
+        return done();
+      })
+      .catch(function(error) {
+        return done(new Error(error));
+      });
+  };
 
-        var image = getImagePath(plateInfo, createLibrarystockResult.well);
+  ExperimentAssay.kue = function(data, LibrarystockResult) {
+    var FormData /*: FormData */ = data.FormData;
+    var plateInfo = data.plateInfo;
 
-        var createExperimentAssayObj = {
+    var title = [
+      'ExperimentAssay-',
+      plateInfo.experimentPlateId,
+      '-',
+      plateInfo.barcode,
+      '-',
+      LibrarystockResult.well,
+    ].join('');
 
-            plateId: plateInfo.experimentPlateId,
-            assayName: plateInfo.barcode + "_" + createLibrarystockResult.well,
-            well: createLibrarystockResult.well,
-            biosampleId: 1,
-            reagentId: createLibrarystockResult.librarystockId,
-            isJunk: FormData.junk,
-            platePath: 'assays' + image[0],
-
-            metaAssay: JSON.stringify({
-                reagentType: 'chemical',
-                experimentType: 'organism',
-                library: 'chembridge'
-            }),
-            assayType: 'chemical',
-        };
-
-        ExperimentAssay
-            .create(createExperimentAssayObj)
-            .then(function(result) {
-                app.models.WpPosts.assayPostKue(FormData, plateInfo, createLibrarystockResult, result);
-                done();
-            })
-            .catch(function(error) {
-                console.log('there was an error! ' + error);
-                return done(new Error(error));
-            });
-
+    var queueObj = {
+      title: title,
+      FormData: FormData,
+      plateInfo: plateInfo,
+      createLibrarystockResult: LibrarystockResult,
     };
 
-    ExperimentAssay.kue = function(FormData, plateInfo, createLibrarystockResult) {
+    ExperimentAssay.imageKue(queueObj);
+    ExperimentAssay.assayKue(queueObj);
 
-        var queueObj = {
-            title: 'ExperimentAssay-' + plateInfo.experimentPlateId + '-' + plateInfo.barcode + '-' + createLibrarystockResult.well,
-            FormData: FormData,
-            plateInfo: plateInfo,
-            createLibrarystockResult: createLibrarystockResult
-        };
+    return new Promise(function(resolve, reject) {
+      resolve(queueObj);
+    });
+  };
 
-        ExperimentAssay.imageKue(queueObj);
+  /**
+   * Create an assay object
+   * The assay Kue is the main kue
+   * The image kue is in ./ExperimentAssay/ImageKue.js
+   * @param  {Object} queueObj [FormData, plateInfo, librarystockResult]
+   */
+  ExperimentAssay.assayKue = function(queueObj) {
+    queue
+      .create('createExperimentAssay', queueObj)
+      .events(false)
+      .removeOnComplete(true)
+      .priority('low')
+      .save();
 
-        queue.create('createExperimentAssay', queueObj)
-            .events(false)
-            .removeOnComplete(true)
-            .priority('low')
-            .save();
+    queue.process('createExperimentAssay', function(job, done) {
+      ExperimentAssay.preProcessKue(job.data, done);
+    });
+  };
 
-        queue.process('createExperimentAssay', function(job, done) {
-            ExperimentAssay.processKue(job.data, done);
-        });
+  /**
+   * Start the imageKue
+   * Parse the imagePath from the vendorPlate
+   * Make a post to the server on 10. :3001
+   * There is a queue on that server that does the actual image conversion
+   * @param  {Object} queueObj [FormData, plateInfo, createLibrarystockResult]
+   */
+  ExperimentAssay.imageKue = function(queueObj) {
+    queue
+      .create('PostImageKue', queueObj)
+      .events(false)
+      .removeOnComplete(true)
+      .priority('low')
+      .ttl(60000)
+      .save();
 
-    };
-
-    ExperimentAssay.imageKue = function(queueObj) {
-
-        //convert image queue
-        //console.log('creating image kue!');
-        queue.create('PostImageKue', queueObj)
-            .events(false)
-            .removeOnComplete(true)
-            .priority('low')
-            .save();
-
-        queue.process('PostImageKue', function(job, done) {
-            ExperimentAssay.processImageKue(job.data, done);
-        });
-
-    };
-
+    queue.process('PostImageKue', function(job, done) {
+      imageKue.processImageKue(job.data, done);
+    });
+  };
 };

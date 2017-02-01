@@ -10,6 +10,7 @@
 /chemgen-client.bk/.sass-cache
 /chemgen-client.bk/bower_components
 /chemgen-vars
+/chemgen-loopback/node_modules
 Divi-child/chemgen-client/node_modules
 Divi-child/chemgen-client/dist
 Divi-child/chemgen-client/.tmp
@@ -20,3 +21,7 @@ Divi-child/chemgen-client/bower_components
 /chemgen-kue/.tmp
 /chemgen-kue/.sass-cache
 /chemgen-kue/bower_components
+/db_backups
+db_backups
+plate_images
+wordpress_plugins
