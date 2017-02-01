@@ -8,14 +8,16 @@
  *
  * Main module of the application.
  */
+
 //'ui.grid.autoResize',
 //'ui.grid.pagination',
 //'ui.grid.edit',
 //'ui.grid.rowEdit',
-        //'ui.grid',
-        //'ui.grid.selection',
-        //'ui.grid.infiniteScroll',
+//'ui.grid',
+//'ui.grid.selection',
+//'ui.grid.infiniteScroll',
 //
+
 angular
     .module('chemgenClientApp', [
         'ngAnimate',
@@ -39,14 +41,20 @@ angular
     .config(['$routeProvider', '$locationProvider', '$httpProvider', function($routeProvider, $locationProvider, $httpProvider) {
 
         $httpProvider.interceptors.push([function() {
+
             return {
                 'request': function(config) {
                     config.headers = config.headers || {};
                     //add nonce to avoid CSRF issues
-                    config.headers['X-WP-Nonce'] = myLocalized.nonce;
+                    if(!myLocalized){
+                      var myLocalized = {};
+                    }
+                    config.headers['X-WP-Nonce'] = myLocalized.nonce || '' ;
                     return config;
                 }
+
             };
+
         }]);
     }])
     .config(function(formlyConfigProvider) {
@@ -65,6 +73,7 @@ angular
 
     })
     .config(function($routeProvider) {
+
         $routeProvider
             .when('/', {
                 templateUrl: myLocalized.views + 'views/main.html',
@@ -76,7 +85,13 @@ angular
               controller: 'ExperimentInputCtrl',
               controllerAs: 'experimentInput'
             })
+            .when('/screen_input', {
+              templateUrl: myLocalized.views + 'views/screen_input.html',
+              controller: 'ScreenInputCtrl',
+              controllerAs: 'screenInput'
+            })
             .otherwise({
                 redirectTo: '/'
             });
+            
     });

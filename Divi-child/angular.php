@@ -20,7 +20,7 @@ Template Name: Angular Page
 <html <?php language_attributes(); ?>>
 <!--<![endif]-->
 <head>
-    <base href="/wordpress/angular/">
+    <base href="<?php echo esc_url( home_url( '/' ) ); ?>angular/">
 
 	<meta charset="<?php bloginfo( 'charset' ); ?>" />
 	<?php elegant_description(); ?>

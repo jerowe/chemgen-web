@@ -21,7 +21,7 @@
  */
 
 angular.module('chemgenClientApp')
-    .controller('ExperimentInputCtrl', function($scope, $http, $cookies, Plate, MainScreen, ReagentsReagentlibrary, MainInstrument, getFormlyPromise) {
+    .controller('ExperimentInputCtrl', function($scope, $http, $cookies, Plate, MainScreen, MainOrganism, ReagentsReagentlibrary, MainInstrument, getFormlyPromise) {
 
         this.awesomeThings = [
             'HTML5 Boilerplate',
@@ -44,6 +44,7 @@ angular.module('chemgenClientApp')
         var vm = this;
 
         var wordpressAccessToken = $cookies.get('wordpress_access_token');
+        var wordpressUserId = $cookies.get('wordpress_user_id');
 
         vm.model = {
             currentDate: (new Date()),
@@ -83,7 +84,7 @@ angular.module('chemgenClientApp')
             FormData.libraryName = library_data[1];
 
             //ExperimentAssay
-            FormData.assay_type = vm.model.assay_type;
+            //FormData.assay_type = vm.model.assay_type;
 
             //ExperimentAssay
             FormData.junk = vm.model.junk;
@@ -122,13 +123,9 @@ angular.module('chemgenClientApp')
 
             console.log("FormData Obj is " + JSON.stringify(FormData));
 
-            //TODO parse the bar codes for the confirmation page
-            //TODO This should be server side
-            //
-            //getPlateList();
             $http({
                 method: 'POST',
-                data:  {wpAT: wordpressAccessToken, FormData: FormData},
+                data:  {wpAT: wordpressAccessToken, wpUI: wordpressUserId, FormData: FormData},
                 url: 'http://onyx.abudhabi.nyu.edu:3000/getPlateList'
             }).then(function successCallback(response) {
                 console.log('we got a response of ' + response);
@@ -143,14 +140,22 @@ angular.module('chemgenClientApp')
             for (var i in vm.model.plates) {
                 var plate = vm.model.plates[i];
 
-                var plateStart_data = plate.plateStart.split("\t");
-                var plateEnd_data = plate.plateEnd.split("\t");
+                if('plateStart' in plate){
 
-                var plateData = {
-                    plateStart: plateStart_data[0],
-                    plateEnd: plateEnd_data[0]
-                };
-                FormData.plates.push(plateData);
+                  if(plate.plateStart && plate.plateEnd){
+
+                    var plateStart_data = plate.plateStart.split("\t");
+                    var plateEnd_data = plate.plateEnd.split("\t");
+
+                    var plateData = {
+                      plateStart: plateStart_data[0],
+                      plateEnd: plateEnd_data[0]
+                    };
+                    FormData.plates.push(plateData);
+                    
+                  }
+
+                }
             }
         }
 
@@ -175,7 +180,7 @@ angular.module('chemgenClientApp')
         };
 
         var screen_field = {
-            className: 'col-xs-4',
+            className: 'col-xs-6',
             key: 'screen',
             type: 'typeahead',
             templateOptions: {
@@ -187,6 +192,37 @@ angular.module('chemgenClientApp')
             expressionProperties: {
                 'templateOptions.watch': function($viewValue, $modelValue, scope) {
                     setFormlyOptions(MainScreen, $viewValue, scope, screenDisplay);
+                }
+            },
+        };
+
+        //////////////////////////////////////////////////////////
+        // End Screen
+        //////////////////////////////////////////////////////////
+
+        //////////////////////////////////////////////////////////
+        // Start Organism
+        //////////////////////////////////////////////////////////
+
+        var strainDisplay = ['organismId', 'name'];
+
+        var setStrainOptions = function($scope) {
+            setFormlyOptions(MainOrganism, '', $scope, strainDisplay);
+        };
+
+        var strain_field = {
+            className: 'col-xs-6',
+            key: 'strain',
+            type: 'typeahead',
+            templateOptions: {
+                label: 'Strain',
+                required: true,
+                options: [],
+            },
+            controller: setStrainOptions,
+            expressionProperties: {
+                'templateOptions.watch': function($viewValue, $modelValue, scope) {
+                    setFormlyOptions(MainOrganism, $viewValue, scope, screenDisplay);
                 }
             },
         };
@@ -295,7 +331,7 @@ angular.module('chemgenClientApp')
         };
 
         var library_field = {
-            className: 'col-xs-4',
+            className: 'col-xs-6',
             key: 'library',
             type: 'typeahead',
             templateOptions: {
@@ -327,17 +363,18 @@ angular.module('chemgenClientApp')
             }
         };
 
-        var assay_type = {
-            className: 'col-xs-4',
-            key: 'assay_type',
-            type: 'typeahead',
-            templateOptions: {
-                label: 'Assay Type',
-                required: true,
-                placeholder: 'RNAi',
-                options: ['RNAi', 'Chemical', 'RNAi+Chemical']
-            },
-        };
+        //TODO get rid of this - we just get this from the library
+        // var assay_type = {
+        //     className: 'col-xs-4',
+        //     key: 'assay_type',
+        //     type: 'typeahead',
+        //     templateOptions: {
+        //         label: 'Assay Type',
+        //         required: true,
+        //         placeholder: 'RNAi',
+        //         options: ['RNAi', 'Chemical', 'RNAi+Chemical']
+        //     },
+        // };
 
         var temperature_options = [{
             name: "22.5C Enhancer",
@@ -403,7 +440,7 @@ angular.module('chemgenClientApp')
 
         var main_fields = {
             className: 'row',
-            fieldGroup: [screen_field, assay_type, library_field]
+            fieldGroup: [screen_field,  library_field]
         };
 
         /////////////////////////////////////////////////////////////////////
@@ -424,62 +461,5 @@ angular.module('chemgenClientApp')
         /////////////////////////////////////////////////////////////////////
         // End Configure Formly Fields
         /////////////////////////////////////////////////////////////////////
-        //
-        //Deprecated
-        //function getPlateList() {
-
-            ////TODO all plates, stupid
-            //var plates = FormData.plates[0];
-
-            //getFormlyPromise.getPlateList(Plate, plates).then(function(data){
-                //populateExperimentPlate(data);
-            //});
-        //}
-
-        //function populateExperimentPlate(data) {
-
-            //for(var i in data){
-
-                //var plateInfo = data[i];
-
-                //createExperimentPlate(plateInfo)
-                    //.then(function(results){
-                        //parsePlateList(plateInfo, results);
-                    //});
-            //}
-
-        //};
-
-        //function parsePlateList(plateInfo, data){
-
-            //var experimentPlateId = data.experimentPlateId;
-            //var isJunk = FormData.junk;
-
-            ////TODO if library Chembridge ---
-            //chemicalChembridgeService.populateAssayTable(plateInfo, experimentPlateId, isJunk);
-        //}
-
-        //function createExperimentPlate(plate_info) {
-
-                ////Create a ExperimentPlate entry and get back ID
-                //var create_obj = {
-                    //screenId : FormData.screenId,
-                    //barcode : plate_info.barcode,
-                    //screenStage : FormData.screenStage,
-                    //temperature: FormData.temperature,
-                    //instrumentId : FormData.instrumentId,
-                    //instrumentPlateId : plate_info.csPlateid,
-                //};
-                //var deffered = $q.defer();
-
-                //ExperimentExperimentplate
-                    //.create(create_obj)
-                    //.$promise
-                    //.then(function(results) {
-                        //deffered.resolve(results);
-                    //});
-
-                //return deffered.promise;
-        //}
 
     });

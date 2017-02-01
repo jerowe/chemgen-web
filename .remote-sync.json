@@ -1,0 +1,17 @@
+{
+  "uploadOnSave": true,
+  "useAtomicWrites": false,
+  "deleteLocal": false,
+  "hostname": "onyx.abudhabi.nyu.edu",
+  "port": "4410",
+  "target": "/home/jdr400/projects/chemgen",
+  "ignore": [
+    ".remote-sync.json",
+    "node_modules",
+    ".git/**"
+  ],
+  "username": "jdr400",
+  "watch": [],
+  "transport": "scp",
+  "useAgent": true
+}

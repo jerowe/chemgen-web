@@ -1,126 +1,204 @@
-module.exports = function(ChemicalLibrarystock) {
+/* @flow */
+'use strict';
 
-    var app = require('../../server/server.js');
-    var Promise = require('bluebird');
-    var kue = require('kue');
-    var queue = kue.createQueue();
-    var _ = require('lodash');
+module.exports = function(ChemicalLibrarystock /*: any */ ) {
+  var app = require('../../server/server.js');
+  var queue = app.queue;
 
-    ChemicalLibrarystock.list96Wells = function() {
-    //function list96Wells() {
+  var Promise = require('bluebird');
+  var _ = require('lodash');
+  var helpers = require('./helpers');
+  // var winston = require('winston');
+  // winston.level = 'debug';
 
-        var rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-        var cols = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-        //var rows = ['A', 'B'];
-        //var cols = ['01', '02'];
-        var allVals = [];
+  ChemicalLibrarystock.list96Wells = function() {
+    var rows = helpers.rows();
+    var cols = helpers.cols();
+    var allVals = [];
 
-        rows.map(function(row){
-            cols.map(function(col){
-                allVals.push(row + col);
-            });
-        });
+    rows.map(function(row) {
+      cols.map(function(col) {
+        allVals.push(row + col);
+      });
+    });
 
-        return allVals;
-    };
+    return allVals;
+  };
 
+  ChemicalLibrarystock.postProcess = function(data, chemicalLibraryStockResults) {
+    return new Promise(function(resolve, reject) {
+      Promise.map(chemicalLibraryStockResults, function(result) {
+        return app.models.ExperimentAssay.kue(data, result);
+      })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        })
+    });
+  };
 
-    function createChemicalLibrarystock(FormData, plateInfo, createObj) {
+  ChemicalLibrarystock.createChemicalLibraryStocks = function(createObjs) {
+    return new Promise(function(resolve, reject) {
+      Promise.map(createObjs, function(createObj) {
+        return ChemicalLibrarystock
+          .create(createObj);
+      })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        })
+      ;
+    });
+  };
 
-        return new Promise(function(resolve, reject) {
-
-            ChemicalLibrarystock
-                .create(createObj)
-                .then(function(result) {
-                    result.taxTerm = createObj.taxTerm;
-                    result.well = createObj.well;
-                    app.models.ExperimentAssay.kue(FormData, plateInfo, result);
-                    resolve();
-                })
-                .catch(function(error) {
-                    console.log('there was an error!' + error);
-                    reject(error);
-                });
-
-        });
+  /**
+   * Library is undef for empty wells
+   * Add in a name and a taxTerm
+   * @param  {Object | Undefined} libraryResult [Library record for that well]
+   * @return {Object}               [Create a library result if it doesn't exist]
+   */
+  var checkLibraryResult = function(libraryResult) {
+    if (!libraryResult) {
+      libraryResult = {};
+      libraryResult.name = 'chembridge_empty';
     }
+    return libraryResult;
+  };
 
-    function processLibraryResults(FormData, plateInfo, chembridgeResults) {
+  /**
+   * Get a list of the 96 wells, iterate over our library results
+   * Fill in any empty wells as library_empty
+   * prepare out ChemicalLibrarystock.create object
+   * @param  {Object} data [FormData, ExperimentPlate, vendorPlate, libraryResults]
+   * @return {[type]}      [description]
+   */
+  ChemicalLibrarystock.preProcessLibraryResults = function(data) {
+    var plateInfo = data.ExperimentExperimentplate;
+    var libraryResults = data.libraryResults;
+    var allWells = ChemicalLibrarystock.list96Wells();
 
-        var allWells = ChemicalLibrarystock.list96Wells();
-
-        return new Promise(function(resolve, reject) {
-
-            Promise.map(allWells, function(well) {
-
-                    var chembridgeResult = _.find(chembridgeResults, 'coordinate', well);
-
-                    if (!chembridgeResult) {
-                        chembridgeResult = {};
-                        chembridgeResult.name = 'chembridge_empty';
-                    }
-
-                    var createStock = {
-                        plateId: plateInfo.experimentPlateId,
-                        parentstockId: chembridgeResult.chembridgelibraryId,
-                        well: well,
-                        taxTerm: chembridgeResult.name,
-                        metaLibrarystock: JSON.stringify({
-                            library: 'chembridge'
-                        }),
-                    };
-
-                    return createChemicalLibrarystock(FormData, plateInfo, createStock);
-            }, {concurrency: 1})
-                .then(function(){
-                    resolve();
-                })
-                .catch(function(error) {
-                    console.log('there was an error ' + error);
-                    reject(error);
-                });
-
+    return new Promise(function(resolve, reject) {
+      Promise.map(allWells, function(well) {
+        var libraryResult = _.find(libraryResults, {
+          coordinate: well
         });
 
-    }
+        libraryResult = checkLibraryResult(libraryResult);
 
-    ChemicalLibrarystock.processkue = function(data, done) {
-
-        var FormData = data.FormData;
-        var plateInfo = data.plateInfo;
-        var plateObj = app.models.ChemicalChembridgelibrary.parseBarcode(plateInfo.barcode);
-
-        //Each well should be a queue
-        app.models.ChemicalChembridgelibrary.findWell(plateObj.plateName)
-            .then(function(libraryResults) {
-                return processLibraryResults(FormData, plateInfo, libraryResults);
-            })
-            .then(function() {
-                done();
-            })
-            .catch(function(error) {
-                return done(new Error(error));
-            });
-
-    };
-
-    ChemicalLibrarystock.kue = function(FormData, plateInfo) {
-
-        var queueObj = {
-            title: 'ChemicalLibrarystock-' + plateInfo.experimentPlateId + '-' + plateInfo.barcode,
-            FormData: FormData,
-            plateInfo: plateInfo
+        var createStock = {
+          plateId: plateInfo.experimentPlateId,
+          parentstockId: libraryResult.chembridgelibraryId,
+          well: well,
+          taxTerm: libraryResult.name,
+          metaLibrarystock: JSON.stringify({
+            library: 'chembridge',
+          }),
         };
-        queue.watchStuckJobs(6000);
-
-        queue.create('createChemicalLibrarystock', queueObj)
-            .events(false)
-            .priority('critical')
-            .save();
-
-        queue.process('createChemicalLibrarystock', 1, function(job, done) {
-            ChemicalLibrarystock.processkue(job.data, done);
+        return createStock;
+      })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
         });
+    });
+  };
 
+  /**
+   * Get the appropriate plate from the vendor library
+   * Array<ChemicalChembridgelibrary>
+   * TODO update this for dynamic library variable
+   * @param  {Object} data [FormData, ExperimentPlate, and vendorPlate]
+   * @return {Array<ChemicalChembridgelibrary>}      []
+   */
+  ChemicalLibrarystock.getLibraryInfo = function(data) {
+    var plateInfo = data.ExperimentExperimentplate;
+    var plateObj = app.models.ChemicalChembridgelibrary
+      .parseBarcode(plateInfo.barcode);
+
+    return new Promise(function(resolve, reject) {
+      app.models.ChemicalChembridgelibrary
+        .findWells(plateObj.plateName)
+        .then(function(libraryResults) {
+          resolve(libraryResults);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
+    });
+  };
+
+  /**
+   * This is the workflow of the ChemicalLibrarystock
+   * 1. Preprocess the experimentPlateId to get the chemical plateInfo
+   * 2. Iterate over the wells of the plate (96) to create the ChemicalLibrarystock
+   * 3. Create chemical library stock
+   * 4. Iterate over chemicalLibraryStock objs to populate ExperimentAssay Kue
+   * @param  {Object}   data [FormData, plateInfo, vendorPlate]
+   * @param  {Function} done [Callback to kue to signal we are finished]
+   * @return {Value of done}        [done() or done(new Error(error))]
+   */
+  ChemicalLibrarystock.processKue = function(data, done) {
+    return new Promise(function(resolve, reject) {
+      ChemicalLibrarystock
+        .getLibraryInfo(data)
+        .then(function(libraryResults) {
+          data.libraryResults = libraryResults;
+          return ChemicalLibrarystock.preProcessLibraryResults(data);
+        })
+        .then(function(results) {
+          return ChemicalLibrarystock.createChemicalLibraryStocks(results);
+        })
+        .then(function(results) {
+          return ChemicalLibrarystock.postProcess(data, results);
+        })
+        .then(function(results) {
+          // console.log('results are ' + JSON.stringify(results));
+          resolve(done());
+        })
+        .catch(function(error) {
+          reject(done(new Error(error)));
+        });
+    });
+  };
+
+  ChemicalLibrarystock.kue = function(FormData, plateInfo) {
+    var title = [
+      'ChemicalLibrarystock-',
+      plateInfo.ExperimentExperimentplate.experimentPlateId,
+      '-',
+      plateInfo.ExperimentExperimentplate.barcode,
+    ].join('');
+
+    var queueObj = {
+      title: title,
+      FormData: FormData,
+      ExperimentExperimentplate: plateInfo.ExperimentExperimentplate,
+      vendorPlate: plateInfo.vendorPlate,
     };
+
+    queue.watchStuckJobs(6000);
+    queue
+      .create('createChemicalLibrarystock', queueObj)
+      .events(false)
+      .priority('critical')
+      .removeOnComplete('true')
+      .ttl(60000)
+      .save();
+
+    queue
+      .process('createChemicalLibrarystock', 1, function(job, done) {
+        ChemicalLibrarystock
+          .processKue(job.data, done);
+      });
+
+    return new Promise(function(resolve, reject) {
+      resolve(queueObj);
+    });
+  };
 };

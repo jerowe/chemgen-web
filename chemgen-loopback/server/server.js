@@ -1,17 +1,31 @@
 'use strict';
 
-var loopback = require('loopback');
-var boot = require('loopback-boot');
 var bodyParser = require('body-parser');
+var boot = require('loopback-boot');
+var loopback = require('loopback');
+const process = require('process');
 
 var app = module.exports = loopback();
+
+var kue = require('kue');
+app.queue = kue.createQueue({redis: 'redis://10.230.9.222:6379'});
 
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true  }));
 
 app.start = function() {
   // start the web server
+
   return app.listen(function() {
+    app.queue.watchStuckJobs();
+
+    process.once( 'SIGTERM', function ( sig ) {
+      queue.shutdown( 5000, function(err) {
+        console.log( 'Kue shutdown: ', err||'' );
+        process.exit( 0 );
+      });
+    });
+
     app.emit('started');
     var baseUrl = app.get('url').replace(/\/$/, '');
     console.log('Web server listening at: %s', baseUrl);
