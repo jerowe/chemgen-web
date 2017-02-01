@@ -166,6 +166,8 @@ describe('WpPosts Assay Post', function() {
       .find()
       .then(function(results) {
         expect(results[0].id).to.deep.equal(posts[0].id);
+        expect(results[0].postContent).to.deep.equal(posts[0].postContent);
+        expect(results[0].postContent).to.deep.equal(posts[0].postContent);
         done();
       })
       .catch(function(error) {
