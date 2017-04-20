@@ -1,7 +1,7 @@
 'use strict';
 
 var app = require('../../../server/server.js');
-var queue = app.queue;
+// var queue = app.queue;
 var Promise = require('bluebird');
 var fs = require('fs');
 var request = require('request');
@@ -74,12 +74,16 @@ var generateImageCommands = function(images) {
   return commands;
 };
 
+// SOMETHING IS WRONG
+//
 var genImageMeta = function(plateInfo, well) {
+
   var imageArray = plateInfo.imagePath.split('\\');
   var folder = imageArray[4];
   var imageId = imageArray[5];
   var plateId = plateInfo.instrumentPlateId;
   var assayName = plateInfo.barcode + '_' + well;
+  // var assayName = plateInfo.platebarcode + '_' + well;
 
   var imagePath = [
     '/mnt/Plate_Data/',
@@ -120,13 +124,19 @@ var genImageMeta = function(plateInfo, well) {
  * @return {[type]}           [description]
  */
 var convertImages = function(plateInfo, well) {
-  return new Promise(function(resolve) {
+
+
+  return new Promise(function(resolve, reject) {
+
     //TODO merge this with getImagePath function
     var plateId = plateInfo.instrumentPlateId;
     var assayName = plateInfo.barcode + '_' + well;
 
+    // console.log('converting images!' + JSON.stringify(plateInfo));
     var images = genImageMeta(plateInfo, well);
     var autoLevelJpegImage = images.autoLevelJpegImage;
+
+    // console.log('image is ' + JSON.stringify(autoLevelJpegImage));
 
     fs.access(autoLevelJpegImage, function(err) {
       if (err && err.code === 'ENOENT') {
@@ -134,12 +144,13 @@ var convertImages = function(plateInfo, well) {
         var imageJob = {
           title: 'convertImage-' + plateId + '-' + assayName,
           commands: commands,
+          plateId: plateId,
         };
         images.convert = 1;
 
         request.post('http://10.230.9.204:3001/', {
           json: imageJob,
-        }, function() {
+        }, function(error) {
           //We should check for status codes here, but they are not very reliable
           //TODO make status codes reliable
           resolve(images);
@@ -158,7 +169,6 @@ var processImageKue = function(data, done) {
       done();
     })
     .catch(function(error) {
-      console.log('there was an error! ' + error);
       return done(new Error(error));
     });
 };

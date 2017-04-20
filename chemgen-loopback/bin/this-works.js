@@ -7,40 +7,40 @@ var app = require(path.resolve(__dirname, '../server/server'));
 var datasource = app.datasources.chemgenDS;
 //var datasource = app.datasources.wordpressDS;
 //var datasource = app.datasources.arrayscanDS;
-var outputPath = path.resolve(__dirname, '_models');
+var outputPath = path.resolve(__dirname, '_chemgenModels');
 
 //var modelConfig = {};
-            //modelConfig[table] = {
-                //'datasource': 'chemgenDS'
-            //};
+//modelConfig[table] = {
+//'datasource': 'chemgenDS'
+//};
 
 datasource.discoverModelDefinitions(function(err, models) {
 
-    models.forEach(function(def) {
-        // def.name ~ the model name
-        datasource.discoverSchema(def.name, null, function(err, results) {
-            //console.log(schema);
-            table = def.name;
+  models.forEach(function(def) {
+    // def.name ~ the model name
+    datasource.discoverSchema(def.name, null, function(err, results) {
+      //console.log(schema);
+      table = def.name;
 
-            table = table.replace(/_/g, "-");
+      table = table.replace(/_/g, "-");
 
-            var outputFile = outputPath + "/" + table + ".json"
+      var outputFile = outputPath + "/" + table + ".json"
 
-            console.log("Output file" + outputFile);
-            var json = JSON.stringify(results, null, '  ');
+      console.log("Output file" + outputFile);
+      var json = JSON.stringify(results, null, '  ');
 
-            fs.writeFile(outputFile, JSON.stringify(results, null, 2), function(err) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log("JSON saved to " + outputFile);
-                }
-            });
-        });
-
+      fs.writeFile(outputFile, JSON.stringify(results, null, 2), function(err) {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("JSON saved to " + outputFile);
+        }
+      });
     });
 
-    //var json = JSON.stringify(modelConfig, null, '  ');
-    //console.log(json);
-    //datasource.disconnect();
+  });
+
+//var json = JSON.stringify(modelConfig, null, '  ');
+//console.log(json);
+//datasource.disconnect();
 });

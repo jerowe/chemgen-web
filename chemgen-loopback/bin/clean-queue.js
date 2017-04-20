@@ -1,5 +1,7 @@
 var kue = require('kue');
-var queue = kue.createQueue({redis: 'redis://10.230.9.222:6379'});
+var queue = kue.createQueue({
+  redis: 'redis://10.230.9.222:6379'
+});
 
 function cleanJobs(err, ids) {
 
@@ -11,10 +13,11 @@ function cleanJobs(err, ids) {
       // Your application should check if job is a stuck one
       if (err) {
         console.log(err);
+      } else {
+        job.remove(function() {
+          console.log('removed ', job.id);
+        });
       }
-      job.remove(function() {
-        console.log('removed ', job.id);
-      });
     });
   });
 }

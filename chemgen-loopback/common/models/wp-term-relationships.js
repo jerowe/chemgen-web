@@ -1,47 +1,54 @@
 module.exports = function(WpTermRelationships) {
 
-  var kue = require('kue');
-  var queue = kue.createQueue({redis: 'redis://10.230.9.222:6379'});
-  //var Promise = require('bluebird');
-  //var app = require('../../server/server.js');
+  var Promise = require('bluebird');
+  var app = require('../../server/server.js');
+  // var queue = app.queue;
+  var agenda = app.agenda;
 
-  WpTermRelationships.processKue = function(data, done) {
+  WpTermRelationships.processKue = function(createTermObj) {
 
-    //console.log('in create term relatonships!!!');
-    var createTermObj = data.createTermObj;
-
-    WpTermRelationships.findOrCreate({
-      where: createTermObj
-    }, createTermObj).then(function() {
-      done();
-    }).catch(function(error) {
-      console.log('WpTermRel.processKue! ' + JSON.stringify(error));
-      return done(new Error(error));
-    });
-
+    WpTermRelationships
+      .findOrCreate({
+        where: createTermObj
+      }, createTermObj)
+      .then(function(results) {
+        resolve(results);
+      })
+      .catch(function(error) {
+        return done(new Error(error));
+      });
   };
 
-  WpTermRelationships.kue = function(createTermTaxonomyResult) {
+  //To keep or not to keep?
+  WpTermRelationships.preProcessKue = function(data, done) {
 
-    var createTermObj = {
-      termTaxonomyId: createTermTaxonomyResult.termTaxonomyId,
-      termOrder: 0,
-      objectId: createTermTaxonomyResult.postId
-    };
+    Promise.map(data.createTermObjs, function(createTermObj) {
+      var createObj = {
+        termTaxonomyId: createTermObj.termTaxonomyId,
+        termOrder: 0,
+        objectId: createTermObj.postId
+      };
+      return WpTermRelationships.processKue(createObj);
+    })
+      .then(function(results) {
+        done();
+      })
+      .catch(function(error) {
+        done(new Error(error));
+      });
+  };
 
-    var queueName = 'createTermRelationships';
+  WpTermRelationships.kue = function(createTermTaxonomyResults) {
 
     var queueObj = {
-      title: queueName + '-',
-      createTermObj: createTermObj
+      createTermObjs: createTermTaxonomyResults,
     };
 
-    queue.create(queueName, queueObj).events(false).removeOnComplete(true).ttl(60000).priority('low').attempts(3).save();
+    agenda.now('createTermRelationships', queueObj);
 
-    queue.process(queueName, 1, function(job, done) {
-      WpTermRelationships.processKue(job.data, done);
-    });
-
+    return new Promise(function(resolve, reject) {
+      resolve(queueObj);
+    })
   };
 
 };

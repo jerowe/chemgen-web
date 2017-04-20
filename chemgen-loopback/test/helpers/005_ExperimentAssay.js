@@ -4,8 +4,8 @@ var helpers = require('../helpers');
 var chemicalHelper = require('./003_ChemicalLibrarystock.js');
 
 var chemicalStockExpect = chemicalHelper.stockExpect;
-var FormData = helpers.FormData();
-var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult();
+var FormData = helpers.FormData;
+var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult;
 var t = ExperimentExperimentplateResult.ExperimentExperimentplate;
 
 exports.kueExpect = [{

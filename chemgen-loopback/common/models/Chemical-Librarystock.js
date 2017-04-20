@@ -11,20 +11,6 @@ module.exports = function(ChemicalLibrarystock /*: any */ ) {
   // var winston = require('winston');
   // winston.level = 'debug';
 
-  ChemicalLibrarystock.list96Wells = function() {
-    var rows = helpers.rows();
-    var cols = helpers.cols();
-    var allVals = [];
-
-    rows.map(function(row) {
-      cols.map(function(col) {
-        allVals.push(row + col);
-      });
-    });
-
-    return allVals;
-  };
-
   ChemicalLibrarystock.postProcess = function(data, chemicalLibraryStockResults) {
     return new Promise(function(resolve, reject) {
       Promise.map(chemicalLibraryStockResults, function(result) {
@@ -70,6 +56,7 @@ module.exports = function(ChemicalLibrarystock /*: any */ ) {
   };
 
   /**
+   * TODO merge this function with the chemical library
    * Get a list of the 96 wells, iterate over our library results
    * Fill in any empty wells as library_empty
    * prepare out ChemicalLibrarystock.create object
@@ -79,7 +66,7 @@ module.exports = function(ChemicalLibrarystock /*: any */ ) {
   ChemicalLibrarystock.preProcessLibraryResults = function(data) {
     var plateInfo = data.ExperimentExperimentplate;
     var libraryResults = data.libraryResults;
-    var allWells = ChemicalLibrarystock.list96Wells();
+    var allWells = helpers.list96Wells();
 
     return new Promise(function(resolve, reject) {
       Promise.map(allWells, function(well) {

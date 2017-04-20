@@ -1,16 +1,17 @@
 'use strict';
 
+var deepcopy = require('deepcopy');
 var helpers = require('../helpers');
 var chembridgeHelper = require('./004_ChemicalChemibridgeLibrary.js');
-var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult();
+var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult;
 var t = ExperimentExperimentplateResult.ExperimentExperimentplate;
-var FormData = helpers.FormData();
+var FormData = helpers.FormData;
 
 /**
  * Feed this to the kue
  * @type {Object}
  */
-exports.chemicalKueData = {
+var chemicalKueData = {
   libraryResults: [chembridgeHelper.chembridgeDummy],
   FormData: FormData,
   ExperimentExperimentplate: t,
@@ -22,15 +23,14 @@ exports.chemicalKueData = {
  * It is returned ChemicalLibrarystock.kue
  * @type {Object}
  */
-exports.kueResults = {
+var kueResults = {
   title: 'ChemicalLibrarystock-1-M1M2M3M43DQ1',
   FormData: FormData,
   ExperimentExperimentplate: t,
   vendorPlate: ExperimentExperimentplateResult.vendorPlate,
 };
 
-
-exports.stockDummy = [{
+var stockDummy = [{
   'plateId': 1,
   'parentstockId': 5102336,
   'well': 'B10',
@@ -41,7 +41,10 @@ exports.stockDummy = [{
 }];
 
 //After creating the stock we have a librarystockId
-exports.stockExpect = [{
+// var stockExpect = deepcopy(stockDummy);
+// stockExpect[0]['librarystockId'] = 1;
+
+var stockExpect = [{
   'librarystockId': 1,
   'parentstockId': 5102336,
   'plateId': 1,
@@ -51,3 +54,10 @@ exports.stockExpect = [{
     library: 'chembridge',
   }),
 }];
+
+module.exports = {
+  stockDummy: stockDummy,
+  stockExpect: stockExpect,
+  chemicalKueData: chemicalKueData,
+  kueResults: kueResults,
+};

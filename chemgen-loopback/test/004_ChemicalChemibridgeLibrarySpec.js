@@ -5,7 +5,7 @@ var expect = require('chai').expect;
 
 var ChemicalChembridgelibrary = app.models.ChemicalChembridgelibrary;
 
-describe('Tests the parseBarcode function in chembridge library', function() {
+describe('004_ChemicalChembridgeLibrarySpec', function() {
   it('parses barcode with dilution', function() {
     var parsed = ChemicalChembridgelibrary.parseBarcode('M1M2M3M43DQ1');
     var expectPlateObj = {

@@ -6,10 +6,12 @@
 module.exports = function(WpPosts /*: any */ ) {
   var app = require('../../server/server.js');
   var slug = require('slug');
-  var kue = require('kue');
-  var queue = app.queue;
+  // var kue = require('kue');
+  // var queue = app.queue;
   var AssayPost = require('./Wp-Posts/AssayPost.js');
   var Promise = require('bluebird');
+  var agenda = require('../../agenda/worker.js');
+  var deepcopy = require('deepcopy');
 
   var helpers = require('./helpers');
   var wpUrl = helpers.wpUrl();
@@ -17,12 +19,13 @@ module.exports = function(WpPosts /*: any */ ) {
 
 
   //TODO move this to ExperimentPlatePost
-  WpPosts.ExperimentPlatePost = function(FormData /*: FormData */ ,
-    plateInfo /*: plateInfo */ ) {
-    var barcode = plateInfo.barcode;
-    var imagePath = plateInfo.imagePath;
-    var instrumentPlateId = plateInfo.instrumentPlateId;
-    var plateId = plateInfo.experimentPlateId;
+  WpPosts.ExperimentPlatePost = function(FormData,
+    plateInfo) {
+
+    var barcode = plateInfo.ExperimentExperimentplate.barcode;
+    var imagePath = plateInfo.ExperimentExperimentplate.imagePath;
+    var instrumentPlateId = plateInfo.ExperimentExperimentplate.instrumentPlateId;
+    var plateId = plateInfo.ExperimentExperimentplate.experimentPlateId;
 
     var imageArray = imagePath.split('\\');
     var folder = imageArray[4];
@@ -37,9 +40,8 @@ module.exports = function(WpPosts /*: any */ ) {
       autoLevelJpegImage;
 
     var titleSlug = slug(plateId + '-' + barcode);
-    titleSlug = titleSlug.toLowerCase();
+    titleSlug = titleSlug;
 
-    //TODO make a helper class
     var rows = helpers.rows();
     var cols = helpers.cols();
 
@@ -102,7 +104,7 @@ module.exports = function(WpPosts /*: any */ ) {
     postContent = postContent + wpHelpers.postInfo(FormData, plateInfo);
 
     var dateNow = new Date().toISOString();
-    var postObj /*: postObj */ = {
+    var postObjNoDate = {
       postAuthor: FormData.wpUI || 1,
       postType: 'plate',
       commentCount: 0,
@@ -114,95 +116,47 @@ module.exports = function(WpPosts /*: any */ ) {
       postParent: 0,
       pingStatus: 'open',
       commentStatus: 'open',
-      postDate: dateNow,
-      postDateGmt: dateNow,
-      guid: wpUrl + '/wordpress/' + titleSlug,
+      guid: wpUrl + titleSlug,
     };
+    var postObjWithDate = deepcopy(postObjNoDate);
+    postObjWithDate.postDate = dateNow;
+    postObjWithDate.postDateGmt = dateNow;
     //********************************
     //End write out plate as gallery
     //********************************
 
-    WpPosts
-      .create(postObj)
-      .then(function(result) {
-        return app.models.WpTerms
-          .kue(FormData, plateInfo, createTermObjs, result);
-      });
+
+    return new Promise(function(resolve, reject) {
+      WpPosts
+        .findOrCreate({
+          where: postObjNoDate
+        }, postObjWithDate)
+        .then(function(results) {
+          var result = results[0];
+          return app.models.WpTerms
+            .kue({
+              FormData: FormData,
+              plateInfo: plateInfo,
+              createTermObjs: createTermObjs
+            }, result);
+        })
+        .then(function(results) {
+          resolve();
+        })
+        .catch(function(error) {
+          console.log('Error creating plate post! ' + JSON.stringify(error));
+          resolve(new Error(error));
+        });
+    });
   };
 
-
-  // //TODO MOVE THIS TO IMAGE Post
-  // WpPosts.assayImagePost = function(FormData, plateInfo,
-  //   createLibrarystockResult,
-  //   imagePath, titleSlug, assayPostResult) {
-  //   return new Promise(function(resolve, reject) {
-  //     var dateNow = new Date().toISOString();
-  //     var postObj = {
-  //       postAuthor: FormData.wpUI || 1,
-  //       postType: 'attachment',
-  //       postMimeType: 'image/jpeg',
-  //       commentCount: 0,
-  //       menuOrder: 0,
-  //       postContent: '',
-  //       postStatus: 'inherit',
-  //       postTitle: assayPostResult.postTitle + '.jpeg',
-  //       postName: titleSlug,
-  //       postParent: 0,
-  //       pingStatus: 'closed',
-  //       commentStatus: 'open',
-  //       postDate: dateNow,
-  //       postDateGmt: dateNow,
-  //       guid: wpUrl + '/wp-content/uploads/' + imagePath,
-  //     };
-  //
-  //     //TODO this should be created from the AssayPost
-  //     var createTermObjs = helpers.createTags(FormData, plateInfo);
-  //
-  //     createTermObjs.push({
-  //       taxonomy: 'chembridge',
-  //       taxTerm: createLibrarystockResult.taxTerm,
-  //     });
-  //
-  //     var baseImage = plateInfo.barcode + '_' + createLibrarystockResult.well + '-autolevel';
-  //     var imageMeta = helpers.imageMeta(imagePath, baseImage);
-  //
-  //
-  //
-  //     WpPosts
-  //       .create(postObj)
-  //       .then(function(result) {
-  //         // console.log('There is a createTermObjs ' + JSON.stringify(createTermObjs));
-  //         // console.log('in result ' + JSON.stringify(result) );
-  //         app.models.WpTerms.kue(FormData, plateInfo, createTermObjs, result);
-  //
-  //         var createObjs = [{
-  //           postId: assayPostResult.id,
-  //           metaKey: '_thumbnail_id',
-  //           metaValue: result.id,
-  //         }, {
-  //           postId: result.id,
-  //           metaKey: '_wp_attached_file',
-  //           metaValue: imagePath,
-  //         }, {
-  //           postId: result.id,
-  //           metaKey: '_wp_attachment_metadata',
-  //           metaValue: imageMeta,
-  //         }];
-  //
-  //         return app.models.WpPostmeta.assayImageMeta(createObjs);
-  //       })
-  //       .then(function() {
-  //         resolve();
-  //       });
-  //   });
-  // };
-
   WpPosts.assayPostKue = function(data, ExperimentAssayResult) {
+
     var FormData = data.FormData;
     var plateInfo = data.plateInfo;
     var LibrarystockResult = data.createLibrarystockResult;
 
-    return new Promise(function(resolve) {
+    return new Promise(function(resolve, reject) {
       var queueObj = {
         title: 'ExperimentAssayPost-' + plateInfo.experimentPlateId +
           '-' + plateInfo.barcode + '-' + LibrarystockResult.well,
@@ -212,18 +166,7 @@ module.exports = function(WpPosts /*: any */ ) {
         createExperimentAssayResult: ExperimentAssayResult,
       };
 
-      queue
-        .create('createExperimentAssayPost', queueObj)
-        .events(false)
-        .priority('high')
-        .removeOnComplete(true)
-        .ttl(60000)
-        .save();
-
-      queue
-        .process('createExperimentAssayPost', 1, function(job, done) {
-          AssayPost.assayProcessKue(job.data, done);
-        });
+      agenda.now('createExperimentAssayPost', queueObj);
       resolve(queueObj);
     });
   };

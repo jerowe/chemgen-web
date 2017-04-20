@@ -3,9 +3,10 @@
 module.exports = function(WpTerms) {
 
   var app = require('../../server/server.js');
-  var queue = app.queue;
+  // var queue = app.queue;
   var Promise = require('bluebird');
   var slug = require('slug');
+  var agenda = app.agenda;
 
   /**
  * [shift the first element of the results, and delete the rest]
@@ -18,9 +19,13 @@ module.exports = function(WpTerms) {
     return new Promise(function(resolve, reject) {
       Promise.map(results, function(result) {
         return app.models.WpTerms.destroyById(result.termId);
-      }).then(function() {
-        resolve(wanted);
-      });
+      })
+        .then(function() {
+          resolve(wanted);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
     });
   }
 
@@ -32,12 +37,16 @@ module.exports = function(WpTerms) {
   function checkFind(createTermObj) {
 
     return new Promise(function(resolve, reject) {
-
-      app.models.WpTerms.find({
-        where: createTermObj
-      }).then(function(results) {
-        resolve(results);
-      });
+      app.models.WpTerms
+        .find({
+          where: createTermObj
+        })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
 
     });
   }
@@ -51,51 +60,42 @@ module.exports = function(WpTerms) {
 
     return new Promise(function(resolve, reject) {
 
+      if (typeof createTermObj.taxTerm === 'undefined' || createTermObj.taxTerm === null) {
+        resolve({});
+      }
+
       var createTerm = {
         name: createTermObj.taxTerm,
-        slug: slug(createTermObj.taxTerm),
+        slug: slug(createTermObj.taxTerm) || '',
         termGroup: 0
       };
 
-      app.models.WpTerms.findOrCreate({
-        where: createTerm
-      }, createTerm).then(function() {
-        return checkFind(createTerm);
-      }).then(function(results) {
-        return deleteExtra(results);
-      }).then(function(wanted) {
-        wanted.taxonomy = createTermObj.taxonomy;
-        wanted.taxTerm = createTermObj.taxTerm;
-        wanted.postId = postId;
-        return app.models.WpTermTaxonomy.kue(wanted);
-      }).then(function() {
-        resolve();
-      });
+      if (createTerm.name) {
+        app.models.WpTerms
+          .findOrCreate({
+            where: createTerm
+          }, createTerm)
+          .then(function() {
+            return checkFind(createTerm);
+          })
+          .then(function(results) {
+            return deleteExtra(results);
+          })
+          .then(function(wanted) {
+            wanted.postId = postId;
+            wanted.taxonomy = createTermObj.taxonomy;
+            // console.log('wanted is ' + JSON.stringify(wanted));
+            resolve(wanted);
+          })
+          .catch(function(error) {
+            reject(new Error(error));
+          });
+      } else {
+        resolve({});
+      }
 
     });
   }
-
-  WpTerms.processKue = function(data, done) {
-
-    var postId = data.postId;
-    var createTermObjs = data.createTerms;
-
-    return new Promise(function(resolve, reject) {
-
-      Promise.map(createTermObjs, function(createTermObj) {
-        createTermObj = checkTaxTerm(createTermObj);
-        return findDuplicates(postId, createTermObj);
-      }).then(function() {
-        done();
-      }).catch(function(error) {
-        console.error('WpTerms.processKue ' + error);
-        console.error(error.stack);
-        return done(new Error(error));
-      });
-
-    });
-
-  };
 
   /**
    * [check to to make sure taxterm is defined -otherwise its taxonomy_empty]
@@ -109,17 +109,64 @@ module.exports = function(WpTerms) {
     return createTermObj;
   }
 
+  WpTerms.postProcess = function(data) {
+    return new Promise(function(resolve, reject) {
+      app.models.WpTermTaxonomy
+        .kue(data)
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
+    });
+  };
+
+  WpTerms.preProcessKue = function(data) {
+    return new Promise(function(resolve, reject) {
+      Promise.map(data.createTerms, function(createTermObj) {
+        return findDuplicates(data.postId, createTermObj);
+      })
+        .then(function(results) {
+          resolve(results);
+        })
+        .catch(function(error) {
+          reject(new Error(error));
+        });
+    });
+  };
+
+  WpTerms.processKue = function(data, done) {
+
+    var postId = data.postId;
+    var createTermObjs = data.createTerms;
+
+    WpTerms.preProcessKue(data)
+      .then(function(results) {
+        return WpTerms.postProcess(results);
+      })
+      .then(function(results) {
+        done();
+      })
+      .catch(function(error) {
+        return done(new Error(error));
+      });
+  };
+
   //TODO get rid of plateInfo
   /**
-   * [Submit wpterms to kue]
    * @param  {[object]} FormData         [data experiment_input is sent with]
    * @param  {[object]} plateInfo        [a row from ExperimentExperimentPlate]
    * @param  {[object]} createTerms      [object of arrays with term, taxterm]
    * @param  {[object]} createPostResult [row of WpPosts]
    * @return {[null promise]}                  [return promise - might add as remote method]
    */
-  WpTerms.kue = function(FormData, plateInfo, createTerms, createPostResult) {
-    return new Promise(function(resolve) {
+  WpTerms.kue = function(data, createPostResult) {
+    var FormData = data.FormData;
+    var plateInfo = data.plateInfo;
+    var createTerms = data.createTermObjs;
+
+    return new Promise(function(resolve, reject) {
       //TODO get this from the function we can process many things here
       var title = [
         'WpTerm-',
@@ -137,18 +184,7 @@ module.exports = function(WpTerms) {
         createPostResult: createPostResult,
       };
 
-      queue
-        .create('createWpTerms', queueObj)
-        .events(false)
-        .priority('low')
-        .removeOnComplete(true)
-        .ttl(60000)
-        .save();
-
-      queue.process('createWpTerms', 1, function(job, done) {
-        WpTerms.processKue(job.data, done);
-      });
-
+      agenda.now('createWpTerms', queueObj);
       resolve(queueObj);
     });
   };

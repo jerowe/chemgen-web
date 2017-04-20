@@ -7,7 +7,8 @@
 module.exports = function(app) {
   var Promise = require('bluebird');
   var FormData = {};
-
+  var Agendash = require('agendash');
+  var agenda = app.agenda;
 
   //Takes as its input FormData - which should look like This
   // {
@@ -25,7 +26,7 @@ module.exports = function(app) {
 
   /**
    * TODO - name this something else
-   * This starts the workflow for inputting data to the database 
+   * This starts the workflow for inputting data to the database
    * Starting processing
    * @type {Object} FormData
    */
@@ -40,4 +41,6 @@ module.exports = function(app) {
         res.status(500).send(error);
       });
   });
+
+  app.use('/agendash', Agendash(agenda));
 };

@@ -2,6 +2,7 @@
 
 var app = require('../server/server.js');
 var helpers = require('./helpers');
+var assayHelper = require('./helpers/005_ExperimentAssay.js');
 
 var expect = require('chai').expect;
 var assert = require('chai').assert;
@@ -9,15 +10,15 @@ var Promise = require('bluebird');
 var sinon = require('sinon');
 var _ = require('lodash');
 
-require('mock-kue');
-var kue = require('kue');
-var jobs = app.queue;
+// require('mock-kue');
+// var kue = require('kue');
+// var jobs = app.queue;
 
 var ExperimentPlate = app.models.ExperimentExperimentplate;
 var ChemicalChembridgelibrary = app.models.ChemicalChembridgelibrary;
 
-var FormData = helpers.FormData();
-var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult();
+var FormData = helpers.FormData;
+var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult;
 var t = ExperimentExperimentplateResult.ExperimentExperimentplate;
 
 var chembridgeHelper = require('./helpers/004_ChemicalChemibridgeLibrary.js');
@@ -26,37 +27,11 @@ var stockHelper = require('./helpers/003_ChemicalLibrarystock.js');
 var ChemicalChembridgelibraryDummy = chembridgeHelper.chembridgeDummy;
 var chemicalKueData = stockHelper.chemicalKueData;
 var ChemicalLibrarystockKueResults = stockHelper.kueResults;
+var stockDummy = stockHelper.stockDummy;
+var stockExpect = stockHelper.stockExpect;
+var ExperimentAssayKue = assayHelper.kueExpect;
 
-var stockDummy = [{
-  'plateId': 1,
-  'parentstockId': 5102336,
-  'well': 'B10',
-  'taxTerm': 'benzaldehyde [1-(4-biphenylyl)ethylidene]hydrazone',
-  'metaLibrarystock': JSON.stringify({
-    library: 'chembridge',
-  }),
-}];
-
-//After creating the stock we have a librarystockId
-var stockExpect = [{
-  'librarystockId': 1,
-  'parentstockId': 5102336,
-  'plateId': 1,
-  'well': 'B10',
-  'taxTerm': 'benzaldehyde [1-(4-biphenylyl)ethylidene]hydrazone',
-  'metaLibrarystock': JSON.stringify({
-    library: 'chembridge',
-  }),
-}];
-
-var ExperimentAssayKue = [{
-  title: 'ExperimentAssay-1-M1M2M3M43DQ1-B10',
-  FormData: FormData,
-  plateInfo: t,
-  createLibrarystockResult: stockExpect[0],
-}];
-
-describe('Inserting some dummy data into the Chembridge table', function() {
+describe('004_ChemicalLibrarySpec: ', function() {
   it('should insert data into chembridge', function(done) {
     app.models.ChemicalChembridgelibrary
       .create(ChemicalChembridgelibraryDummy)
@@ -67,14 +42,14 @@ describe('Inserting some dummy data into the Chembridge table', function() {
   });
 });
 
-describe('Testing ChemicalChembridgelibrary workflow', function() {
+describe('004_ChemicalLibrarySpec Workflow: ', function() {
   //TODO add in a few more wells for the sake of testing
   beforeEach(function() {
+    // kue.clear();
+    // kue.drain();
     app.models.ChemicalLibrarystock.list96Wells = function() {
       return ['B10'];
     };
-    kue.clear();
-    kue.drain();
   });
 
   it('should return the queue obj', function(done) {

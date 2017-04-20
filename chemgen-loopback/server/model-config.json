@@ -29,6 +29,12 @@
     "dataSource": "db",
     "public": false
   },
+  "RnaiLibrarystock": {
+      "dataSource": "chemgenDS"
+  },
+  "RnaiRnailibrary": {
+      "dataSource": "chemgenDS"
+  },
   "ChemicalChembridgelibrary": {
       "dataSource": "chemgenDS"
   },

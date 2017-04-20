@@ -14,11 +14,12 @@
  */
 module.exports = function(ExperimentAssay) {
   var app = require('../../server/server.js');
-  var queue = app.queue;
+  // var queue = app.queue;
   var Promise = require('bluebird');
   var fs = require('fs');
   var request = require('request');
   var imageKue = require('./Experiment-Assay/ImageKue.js');
+  var agenda = app.agenda;
 
   ExperimentAssay.getImagePath = function(plateInfo, well) {
     var imageArray = plateInfo.imagePath.split('\\');
@@ -43,10 +44,14 @@ module.exports = function(ExperimentAssay) {
    * @return {[type]}                    [description]
    */
   ExperimentAssay.createAssay = function(ExperimentAssayObj) {
+
     return new Promise(function(resolve, reject) {
       ExperimentAssay
-        .create(ExperimentAssayObj)
-        .then(function(result) {
+        .findOrCreate({
+          where: ExperimentAssayObj
+        }, ExperimentAssayObj)
+        .then(function(results) {
+          var result = results[0];
           resolve(result);
         })
         .catch(function(error) {
@@ -63,8 +68,10 @@ module.exports = function(ExperimentAssay) {
    * @return {Object}        [Resolves ExperimentAssayResultSet]
    */
   ExperimentAssay.prepareExperimentAssay = function(data) {
+
     var FormData = data.FormData;
     var plateInfo = data.plateInfo;
+    //This does not make sense!
     var LibrarystockResult = data.createLibrarystockResult;
 
     var well = LibrarystockResult.well;
@@ -79,11 +86,11 @@ module.exports = function(ExperimentAssay) {
       isJunk: FormData.junk,
       platePath: 'assays' + image[0],
       metaAssay: JSON.stringify({
-        reagentType: 'chemical',
+        reagentType: FormData.reagentType,
         experimentType: 'organism',
-        library: 'chembridge',
+        library: FormData.library,
       }),
-      assayType: 'chemical',
+      assayType: FormData.reagentType,
     };
 
     return new Promise(function(resolve, reject) {
@@ -110,7 +117,8 @@ module.exports = function(ExperimentAssay) {
   };
 
   ExperimentAssay.kue = function(data, LibrarystockResult) {
-    var FormData /*: FormData */ = data.FormData;
+
+    var FormData = data.FormData;
     var plateInfo = data.plateInfo;
 
     var title = [
@@ -129,10 +137,9 @@ module.exports = function(ExperimentAssay) {
       createLibrarystockResult: LibrarystockResult,
     };
 
-    ExperimentAssay.imageKue(queueObj);
-    ExperimentAssay.assayKue(queueObj);
-
     return new Promise(function(resolve, reject) {
+      ExperimentAssay.imageKue(queueObj);
+      ExperimentAssay.assayKue(queueObj);
       resolve(queueObj);
     });
   };
@@ -144,16 +151,7 @@ module.exports = function(ExperimentAssay) {
    * @param  {Object} queueObj [FormData, plateInfo, librarystockResult]
    */
   ExperimentAssay.assayKue = function(queueObj) {
-    queue
-      .create('createExperimentAssay', queueObj)
-      .events(false)
-      .removeOnComplete(true)
-      .priority('low')
-      .save();
-
-    queue.process('createExperimentAssay', function(job, done) {
-      ExperimentAssay.preProcessKue(job.data, done);
-    });
+    agenda.now('createExperimentAssay', queueObj);
   };
 
   /**
@@ -164,16 +162,10 @@ module.exports = function(ExperimentAssay) {
    * @param  {Object} queueObj [FormData, plateInfo, createLibrarystockResult]
    */
   ExperimentAssay.imageKue = function(queueObj) {
-    queue
-      .create('PostImageKue', queueObj)
-      .events(false)
-      .removeOnComplete(true)
-      .priority('low')
-      .ttl(60000)
-      .save();
-
-    queue.process('PostImageKue', function(job, done) {
-      imageKue.processImageKue(job.data, done);
+    return new Promise(function(resolve) {
+      agenda.now('imageKue', queueObj);
+      resolve();
     });
   };
+
 };

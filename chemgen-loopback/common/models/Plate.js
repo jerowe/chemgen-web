@@ -5,6 +5,13 @@ module.exports = function(Plate /*: any */ ) {
   var Promise = require('bluebird');
   var app = require('../../server/server.js');
 
+  /**
+  * Get a Chemical Library Plate by doing PlateStart, PlateEnd
+  * TODO move this over to ChemicalLibrary
+  * For Chemical Library
+  * @param  {[type]} plate [description]
+  * @return {[type]}       [description]
+  */
   Plate.getList = function(plate) {
     return new Promise(function(resolve, reject) {
       Plate.find({
@@ -15,14 +22,15 @@ module.exports = function(Plate /*: any */ ) {
         },
       })
         .then(function(results) {
-          var plateIds = results.map(function(obj) {
-            var plateObj = {};
-            plateObj.plateStartTime = obj.platestarttime;
-            plateObj.csPlateid = obj.csPlateid;
-            plateObj.barcode = obj.name;
-            plateObj.imagePath = obj.imagepath;
-            return plateObj;
-          });
+          var plateIds = Plate.processPlateResults(results);
+          // var plateIds = results.map(function(obj) {
+          //   var plateObj = {};
+          //   plateObj.plateStartTime = obj.platestarttime;
+          //   plateObj.csPlateid = obj.csPlateid;
+          //   plateObj.barcode = obj.name;
+          //   plateObj.imagePath = obj.imagepath;
+          //   return plateObj;
+          // });
           resolve(plateIds);
         })
         .catch(function(error) {
@@ -30,6 +38,19 @@ module.exports = function(Plate /*: any */ ) {
         });
     });
   };
+
+  Plate.processPlateResults = function(results) {
+    var plateIds = results.map(function(obj) {
+      var plateObj = {};
+      plateObj.plateStartTime = obj.platestarttime;
+      plateObj.csPlateid = obj.csPlateid;
+      plateObj.barcode = obj.name;
+      plateObj.imagePath = obj.imagepath;
+      return plateObj;
+    });
+
+    return plateIds;
+  }
 
   /**
    * Take the array of PlateResultSets, add an interval, and the original FormData

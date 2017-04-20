@@ -7,22 +7,35 @@ const process = require('process');
 
 var app = module.exports = loopback();
 
-var kue = require('kue');
-app.queue = kue.createQueue({redis: 'redis://10.230.9.222:6379'});
+//Replacing Kue with Agenda
+// var agenda = require('./boot/agendaWorker.js');
+var agenda = require('../agenda/worker.js');
+app.agenda = agenda;
+
+// TODO - get rid of all queue
+// var kue = require('kue');
+// app.queue = kue.createQueue({
+//   redis: 'redis://10.230.9.222:6379'
+// });
+app.queue = {};
+
 
 app.use(bodyParser.json()); // for parsing application/json
-app.use(bodyParser.urlencoded({ extended: true  }));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 
 app.start = function() {
   // start the web server
 
   return app.listen(function() {
-    app.queue.watchStuckJobs();
+    // app.queue.watchStuckJobs();
 
-    process.once( 'SIGTERM', function ( sig ) {
-      queue.shutdown( 5000, function(err) {
-        console.log( 'Kue shutdown: ', err||'' );
-        process.exit( 0 );
+    //Kue Shutdown
+    process.once('SIGTERM', function(sig) {
+      queue.shutdown(5000, function(err) {
+        console.log('Kue shutdown: ', err || '');
+        process.exit(0);
       });
     });
 
@@ -39,7 +52,8 @@ app.start = function() {
 // Bootstrap the application, configure models, datasources and middleware.
 // Sub-apps like REST API are mounted via boot scripts.
 boot(app, __dirname, function(err) {
-  if (err) throw err;
+  if (err)
+    throw err;
 
   // start the server if `$ node server.js`
   if (require.main === module)

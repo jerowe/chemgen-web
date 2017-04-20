@@ -1,6 +1,6 @@
 'use strict';
 
-exports.chembridgeDummy = {
+var chembridgeDummy = {
   chembridgelibraryId: 5102336,
   code: 'N1261-1',
   plate: '0001',
@@ -19,4 +19,8 @@ exports.chembridgeDummy = {
   formula: 'C21H18N2',
   molWeight: 298.39,
   name: 'benzaldehyde [1-(4-biphenylyl)ethylidene]hydrazone',
+};
+
+module.exports = {
+  chembridgeDummy: chembridgeDummy,
 };

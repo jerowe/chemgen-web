@@ -11,7 +11,7 @@ var postInfo = function(FormData, plateInfo) {
   postContent = postContent + '<b>Screen Stage: </b>' +
     FormData.screenStage + '<br>';
   postContent = postContent + '<b>Imaging Date: </b>' +
-    plateInfo.plateStartTime + '<br>';
+    plateInfo.ExperimentExperimentplate.plateStartTime + '<br>';
 
   //TODO add in taxonomies
   if (FormData.junk === 1) {

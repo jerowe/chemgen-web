@@ -2,8 +2,8 @@
 
 var app = require('../server/server.js');
 var helpers = require('./helpers');
-var kue = require('kue');
-var jobs = app.queue;
+// var kue = require('kue');
+// var jobs = app.queue;
 
 var expect = require('chai').expect;
 var assert = require('assert');
@@ -14,12 +14,12 @@ require('mock-kue');
 var Plate = app.models.Plate;
 var ExperimentPlate = app.models.ExperimentExperimentplate;
 
-var FormData = helpers.FormData();
-var plate = helpers.plate();
-var plateList = helpers.plateList();
-
-var populateExperimentPlateResult = helpers.populateExperimentPlateResult();
-var submitKueResult = helpers.submitKueResult();
+//Get data from helpers
+var FormData = helpers.FormData;
+var plate = helpers.plate;
+var plateList = helpers.plateList;
+var populateExperimentPlateResult = helpers.populateExperimentPlateResult;
+var submitKueResult = helpers.submitKueResult;
 
 /**
  * This is the initial workflow:
@@ -30,15 +30,15 @@ var submitKueResult = helpers.submitKueResult();
  *
  * Tests for the ExperimentExperimentPlate creation are in ExperimentExperimentPlateSpec.js
  */
-describe('Testing Initial Workflow', function() {
+describe('001_PlateSpec', function() {
   beforeEach(function() {
-    kue.clear();
-    kue.drain();
+    // kue.clear();
+    // kue.drain();
   });
 
   afterEach(function() {
-    kue.clear();
-    kue.drain();
+    // kue.clear();
+    // kue.drain();
   });
 
   it('Should return a platelist', function(done) {

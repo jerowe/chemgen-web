@@ -1,0 +1,18 @@
+/*
+ Theme Name:   Shapely Child
+ Theme URI:    http://yourwebsite.com/twentyfourteen-child/
+ Description:  Theme based on shapely
+ Author:       Jillian Rowe
+ Author URI:   http://github/jerowe
+ Template:     shapely
+ Version:      0.0.1
+ Tags:         black, green, white, light, dark, two-columns, three-columns, left-sidebar, right-sidebar, fixed-layout, responsive-layout, custom-background, custom-header, custom-menu, editor-style, featured-images, flexible-header, full-width-template, microformats, post-formats, rtl-language-support, sticky-post, theme-options, translation-ready, accessibility-ready, responsive-layout, infinite-scroll, post-slider, design, food, journal, magazine, news, photography, portfolio, clean, contemporary, dark, elegant, modern, professional, sophisticated
+ Text Domain:  shapely-child
+*/
+
+div.author-bio {
+    display: none;
+}
+div.author-bio {
+    display: hidden;
+}

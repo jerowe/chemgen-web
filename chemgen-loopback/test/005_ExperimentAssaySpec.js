@@ -10,15 +10,15 @@ var Promise = require('bluebird');
 var sinon = require('sinon');
 var _ = require('lodash');
 
-require('mock-kue');
-var kue = require('kue');
-var jobs = app.queue;
+// require('mock-kue');
+// var kue = require('kue');
+// var jobs = app.queue;
 
 var ExperimentAssay = app.models.ExperimentAssay;
 var ImageKue = require('../common/models/Experiment-Assay/ImageKue.js');
 
-var FormData = helpers.FormData();
-var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult();
+var FormData = helpers.FormData;
+var ExperimentExperimentplateResult = helpers.ExperimentExperimentplateResult;
 var t = ExperimentExperimentplateResult.ExperimentExperimentplate;
 var kueExpect = assayHelper.kueExpect;
 
@@ -64,7 +64,7 @@ var commandsExpect = [
   'rm -rf /tmp/wbg1fw29',
 ];
 
-describe('Testing Image Processing Kue', function() {
+describe('005_ExperimentAssay', function() {
   it('Submits to the queue', function(done) {
     ExperimentAssay
       .kue(kueExpect[0], kueExpect[0].createLibrarystockResult)

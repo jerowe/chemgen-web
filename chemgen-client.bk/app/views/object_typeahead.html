@@ -1,9 +1,0 @@
-<input type="text" ng-model="model[options.key]"
-uib-typeahead="item as item.name for item in to.options | filter: $viewValue | limitTo:15"
-class="form-control"
-typeahead-loading="loadingLocation"
-typeahead-on-select="Results"
-autocomplete="off"
->
-<i ng-show="loadingLocation" class="glyphicon glyphicon-refresh"></i>
-<i ng-show="Results">results</i>
